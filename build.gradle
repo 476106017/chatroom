@@ -1,0 +1,68 @@
+
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.2.5'
+	id 'io.spring.dependency-management' version '1.1.4'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	sourceCompatibility = '21'
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+	maven { url 'https://repo.spring.io/milestone' }
+}
+
+ext {
+	set('springAiVersion', "0.8.1")
+}
+
+allprojects {
+    // 设置代理
+    def proxyHost = 'localhost'
+    def proxyPort = '33210'
+
+    if (proxyHost && proxyPort) {
+        System.setProperty('http.proxyHost', proxyHost)
+        System.setProperty('http.proxyPort', proxyPort)
+        System.setProperty('https.proxyHost', proxyHost)
+        System.setProperty('https.proxyPort', proxyPort)
+    }
+
+    // 可选：如果你的代理需要身份验证
+    def proxyUser = ''
+    def proxyPassword = ''
+
+    if (proxyUser && proxyPassword) {
+        System.setProperty('http.proxyUser', proxyUser)
+        System.setProperty('http.proxyPassword', proxyPassword)
+        System.setProperty('https.proxyUser', proxyUser)
+        System.setProperty('https.proxyPassword', proxyPassword)
+    }
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-websocket'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.xerial:sqlite-jdbc:3.45.1.0'
+    implementation 'org.hibernate.orm:hibernate-community-dialects:6.4.4.Final'
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
