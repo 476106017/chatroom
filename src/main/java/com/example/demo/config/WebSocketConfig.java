@@ -1,5 +1,6 @@
 package com.example.demo.config;
 
+import com.example.demo.repo.UserHistoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -15,6 +16,8 @@ import org.springframework.web.socket.server.standard.SpringConfigurator;
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+    @Autowired
+    UserHistoryRepository userHistoryRepository;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -26,13 +29,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*")
-                .addInterceptors(new CustomHandshakeInterceptor()) // 添加拦截器
+                .addInterceptors(new CustomHandshakeInterceptor(userHistoryRepository)) // 添加拦截器
                 .withSockJS();;
     }
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(new CustomChannelInterceptor());
+        registration.interceptors(new CustomChannelInterceptor(userHistoryRepository));
     }
 
 }

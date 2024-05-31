@@ -8,7 +8,7 @@ import org.springframework.stereotype.Controller;
 
 @Controller
 @AllArgsConstructor
-public class WebSocketHandler {
+public class UserMessageHandler {
 
     final SimpMessagingTemplate messagingTemplate;
 
@@ -16,7 +16,7 @@ public class WebSocketHandler {
     public void sendMessage(String message, SimpMessageHeaderAccessor headerAccessor) {
         final String username = (String) headerAccessor.getSessionAttributes().get("username");
         // 发送消息到特定用户
-        messagingTemplate.convertAndSendToUser(username, "/topic/messages", message);
-        messagingTemplate.convertAndSend("/topic/messages");
+        messagingTemplate.convertAndSendToUser(username, "/queue/msgConfirm", message);
+        messagingTemplate.convertAndSend("/topic/public", message);
     }
 }
