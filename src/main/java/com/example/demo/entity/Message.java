@@ -1,17 +1,16 @@
 package com.example.demo.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
 @Data
-@Table(name = "user_history")
-public class UserHistory {
+@Table(name = "message")
+@NoArgsConstructor
+public class Message {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,20 +18,23 @@ public class UserHistory {
 
     @Column(name = "username")
     private String username;
-    
+
     @Column(name = "destination")
     private String destination;
 
-    @Column(name = "message")
-    private String message;
+    @Column(name = "content")
+    private String content;
+
+    @Column(name = "readers")
+    private String readers;
 
     @Column(name = "timestamp")
     private LocalDateTime timestamp;
 
-    public UserHistory(String username, String destination, String message) {
+    public Message(String username, String destination, String content) {
         this.username = username;
         this.destination = destination;
-        this.message = message;
+        this.content = content;
         this.timestamp = LocalDateTime.now();
     }
 }

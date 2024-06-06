@@ -5,6 +5,7 @@ import com.example.demo.entity.UserFollow;
 import com.example.demo.repo.UserFollowRepository;
 import com.example.demo.repo.UserRepository;
 import lombok.AllArgsConstructor;
+import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,6 +28,12 @@ public class UserController {
 
     @PostMapping("/register")
     public ModelAndView registerUser(@RequestParam String username, @RequestParam String password) {
+        if(Strings.isBlank(username) || username.length()>32){
+            throw new IllegalArgumentException("用户名是0-32位");
+        }
+        if(userRepository.findByUsername(username).isPresent()){
+            throw new IllegalArgumentException("用户名已存在");
+        }
         User user = new User();
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));

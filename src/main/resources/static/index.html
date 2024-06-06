@@ -2,52 +2,155 @@
 <html>
 <head>
     <title>WebSocket STOMP Test</title>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
-    <script>
-        var stompClient = null;
-        var uname = localStorage.getItem('uname');
-
-
-        function connect() {
-            var socket = new SockJS('/ws');
-            stompClient = Stomp.over(socket);
-            stompClient.connect({}, function (frame) {
-                console.log('Connected: ' + frame);
-                stompClient.subscribe('/user/topic/messages', function (message) {
-                    showMessage(message.body);
-                });
-            });
+    <style>
+        .message-container {
+            padding: 10px;
+            border: 1px solid #ccc;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            word-wrap: break-word;
         }
-
-        function sendMessage() {
-            var messageContent = document.getElementById('message').value;
-            if (messageContent && stompClient) {
-                stompClient.send("/app/send", {}, messageContent);
-                // document.getElementById('message').value = '';
-            }
+        .message-header {
+            font-weight: bold;
         }
-
-        function showMessage(message) {
-            var response = document.getElementById('response');
-            var p = document.createElement('p');
-            p.style.wordWrap = 'break-word';
-            p.appendChild(document.createTextNode(message));
-            response.appendChild(p);
+        .message-content {
+            margin-top: 5px;
         }
-
-        window.onload = function() {
-            connect();
-        };
-    </script>
+        .message-container:hover .timestamp {
+            visibility: visible;
+        }
+        .timestamp {
+            visibility: hidden;
+            font-size: 10px;
+            padding-left: 30px;
+        }
+        .message-readers {
+			display: inline;
+			font-size: 12px;
+			padding: 10px; /* 确保 padding 值有单位 */
+			color: blue; /* 设置字体颜色为蓝色 */
+        }
+		.message-readers-count {
+			display: inline;
+			font-size: 12px;
+			padding: 10px; /* 确保 padding 值有单位 */
+			color: blue; /* 设置字体颜色为蓝色 */
+			text-decoration: none; /* 移除下划线 */
+			cursor: pointer; /* 显示为可点击的指针 */
+		}
+        .right {
+            display: inline;
+            float: right;
+        }
+    </style>
 </head>
 <body>
+<a class="right" href="/logout"><button>登出</button></a>
 <h1>WebSocket STOMP Test</h1>
-<div>
-    <input type="text" id="message" placeholder="Type a message...">
-    <button onclick="sendMessage()">Send</button>
-</div>
 <div id="response"></div>
-<a href="/logout"><button>Logout</button></a>
+<div>
+    <input type="text" id="message" placeholder="请输入内容...">
+    <button onclick="sendMessage()">发送</button>
+</div>
+
+<script>
+    var stompClient = null;
+    var uname = localStorage.getItem('uname');
+
+
+    function connect() {
+        var socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+        stompClient.connect({}, function (frame) {
+            console.log('Connected: ' + frame);
+            stompClient.subscribe('/topic/public', function (data) {
+                var message = JSON.parse(data.body);
+                showMessage(message);
+            });
+            stompClient.subscribe('/user/queue/updateReaders', function (data) {
+                var updatedMessage = JSON.parse(data.body);
+
+                var messageContainer = $('#' + updatedMessage.id);
+                var readersElement = messageContainer.find('.message-readers');
+                var readersCountElement = messageContainer.find('.message-readers-count');
+
+
+                // 如果 readersElement 不存在，创建并添加它
+                if (readersElement.length === 0) {
+				
+					readersCountElement = $('<div>').addClass('message-readers-count');
+                    messageContainer.append(readersCountElement);
+                    readersElement = $('<div>').addClass('message-readers').hide();
+                    messageContainer.append(readersElement);
+					
+                    // 使用 jQuery 实现悬停显示和隐藏效果
+                    messageContainer.hover(
+                        function() {
+                            readersCountElement.hide();
+                            readersElement.show();
+                        },
+                        function() {
+                            readersCountElement.show();
+                            readersElement.hide();
+                        }
+                    );
+                }
+
+				var readersArray = updatedMessage.readers.split(',');
+				readersCountElement.text('已读: ' + readersArray.length + '人');
+				readersCountElement.fadeOut(100).fadeIn(100).css('display', 'inline');
+				
+				readersElement.text('已读: ' + updatedMessage.readers);
+				readersElement.fadeOut(100).fadeIn(100);
+            });
+        });
+    }
+
+    function sendMessage() {
+        var messageContent = document.getElementById('message').value;
+        if (messageContent && stompClient) {
+            stompClient.send("/app/send", {}, messageContent);
+            // document.getElementById('message').value = '';
+        }
+    }
+
+        function formatTimestamp(timestamp) {
+            var date = new Date(timestamp);
+            return date.toLocaleString(); // 格式化日期
+        }
+
+    function showMessage(message) {
+        var response = $('#response');
+
+        var messageContainer = $('<div>').addClass('message-container').attr('id', message.id);
+
+        var header = $('<div>').addClass('message-header').html(message.username + '<span class="timestamp">' + formatTimestamp(message.timestamp) + '</span>');
+        var content = $('<div>').addClass('message-content').text(message.content);
+
+        messageContainer.append(header).append(content);
+
+        if (message.readers) {
+            var readersArray = message.readers.split(',');
+            var readersCount = $('<div>').addClass('message-readers-count').text('已读: ' + readersArray.length + '人').css('display', 'inline');;
+            var readers = $('<div>').addClass('message-readers').text('已读: ' + message.readers).hide();
+
+            messageContainer.append(readersCount).append(readers);
+        }
+
+        response.append(messageContainer);
+
+        // 确认已读
+        stompClient.send("/app/read", {}, message.id);
+    }
+
+
+    window.onload = function() {
+        connect();
+    };
+</script>
 </body>
 </html>
