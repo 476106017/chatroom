@@ -19,6 +19,9 @@ public class Message {
     @Column(name = "username")
     private String username;
 
+    @Column(name = "status")
+    private String status;
+
     @Column(name = "destination")
     private String destination;
 

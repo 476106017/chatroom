@@ -75,4 +75,17 @@ public class UserMessageHandler {
             }
         });
     }
+
+    @MessageMapping("/withdraw")
+    public void withdrawMessage(Long messageId, SimpMessageHeaderAccessor accessor) {
+        final String user = MyStorage.of(accessor).getUser();
+
+        messageRepository.findById(messageId).ifPresent(message -> {
+           if(message.getUsername().equals(user)){
+               message.setStatus("WITHDRAW");
+               messageRepository.save(message);
+               messagingTemplate.convertAndSend("/queue/withdraw", messageId);
+           }
+        });
+    }
 }

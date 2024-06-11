@@ -113,6 +113,11 @@
                 var message = JSON.parse(data.body);
                 showMessage([message]);
             });
+            stompClient.subscribe('/queue/withdraw', function (data) { // 撤回
+                if($('#' + data.body)){
+                    $('#' + data.body).find('.message-content').html('<em>（消息已撤回）</em>');
+                }
+            });
             stompClient.subscribe('/user/queue/updateReaders', function (data) { // 更新消息已阅情况
                 var updatedMessage = JSON.parse(data.body);
 
@@ -192,7 +197,12 @@
             }
 
             var header = $('<div>').addClass('message-header').html(message.username + '<span class="timestamp">' + formatTimestamp(message.timestamp) + '</span>');
-            var content = $('<div>').addClass('message-content').text(message.content);
+            var content = $('<div>').addClass('message-content')
+
+            if(message.status=='WITHDRAW')
+                content.html('<em>（消息已撤回）</em>');
+            else
+                content.text(message.content);
 
             messageContainer.append(header).append(content);
 
@@ -223,7 +233,8 @@
                     left: e.pageX,
                     top: e.pageY
                 }).data('messageId',$(this).attr('id'));
-                if($('#custom-msg-menu').hasClass('my-message')){
+                console.log($(this));
+                if($(this).hasClass('my-message')){
                     $("#withdraw").show();
                 }else{
                     $("#withdraw").hide();
