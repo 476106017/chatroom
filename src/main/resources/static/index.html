@@ -7,6 +7,27 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <style>
+        #custom-msg-menu {
+            display: none;
+            position: absolute;
+            background-color: #ffffff;
+            border: 1px solid #d4d4d4;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+        #custom-msg-menu ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #custom-msg-menu li {
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        #custom-msg-menu li:hover {
+            background-color: #eeeeee;
+        }
+
         .message-container {
             padding: 10px;
             border: 1px solid #ccc;
@@ -23,6 +44,9 @@
         .message-container:hover .timestamp {
             visibility: visible;
         }
+        .my-message {
+            background-color: #C9E7FF;
+        }
         .timestamp {
             visibility: hidden;
             font-size: 10px;
@@ -31,13 +55,13 @@
         .message-readers {
 			display: inline;
 			font-size: 12px;
-			padding: 10px; /* 确保 padding 值有单位 */
+			padding-top: 10px; /* 确保 padding 值有单位 */
 			color: blue; /* 设置字体颜色为蓝色 */
         }
 		.message-readers-count {
 			display: inline;
 			font-size: 12px;
-			padding: 10px; /* 确保 padding 值有单位 */
+			padding-top: 10px; /* 确保 padding 值有单位 */
 			color: blue; /* 设置字体颜色为蓝色 */
 			text-decoration: none; /* 移除下划线 */
 			cursor: pointer; /* 显示为可点击的指针 */
@@ -57,6 +81,19 @@
     <button onclick="sendMessage()">发送</button>
 </div>
 
+<div id="custom-msg-menu">
+    <ul>
+        <li id="refer">引用</li>
+        <li id="withdraw">撤回</li>
+        <li id="report">举报</li>
+    </ul>
+</div>
+<!--<div id="custom-user-menu">-->
+<!--    <ul>-->
+<!--        <li id="duel">决斗</li>-->
+<!--        <li id="focus">关注</li>-->
+<!--    </ul>-->
+<!--</div>-->
 <script>
     var stompClient = null;
     var uname = localStorage.getItem('uname');
@@ -67,11 +104,16 @@
         stompClient = Stomp.over(socket);
         stompClient.connect({}, function (frame) {
             console.log('Connected: ' + frame);
-            stompClient.subscribe('/topic/public', function (data) {
-                var message = JSON.parse(data.body);
-                showMessage(message);
+            stompClient.send("/app/init", {}, null); // 初始化请求
+            stompClient.subscribe('/user/topic/init', function (data) { // 初始化
+                var messages = JSON.parse(data.body);
+                showMessage(messages);
             });
-            stompClient.subscribe('/user/queue/updateReaders', function (data) {
+            stompClient.subscribe('/topic/public', function (data) { // 接收消息
+                var message = JSON.parse(data.body);
+                showMessage([message]);
+            });
+            stompClient.subscribe('/user/queue/updateReaders', function (data) { // 更新消息已阅情况
                 var updatedMessage = JSON.parse(data.body);
 
                 var messageContainer = $('#' + updatedMessage.id);
@@ -81,12 +123,12 @@
 
                 // 如果 readersElement 不存在，创建并添加它
                 if (readersElement.length === 0) {
-				
+
 					readersCountElement = $('<div>').addClass('message-readers-count');
                     messageContainer.append(readersCountElement);
                     readersElement = $('<div>').addClass('message-readers').hide();
                     messageContainer.append(readersElement);
-					
+
                     // 使用 jQuery 实现悬停显示和隐藏效果
                     messageContainer.hover(
                         function() {
@@ -103,11 +145,26 @@
 				var readersArray = updatedMessage.readers.split(',');
 				readersCountElement.text('已读: ' + readersArray.length + '人');
 				readersCountElement.fadeOut(100).fadeIn(100).css('display', 'inline');
-				
+
 				readersElement.text('已读: ' + updatedMessage.readers);
 				readersElement.fadeOut(100).fadeIn(100);
             });
+
+            // 隐藏自定义菜单
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#custom-msg-menu').length) {
+                    $('#custom-msg-menu').hide();
+                }
+            });
+
+            // 自定义菜单项点击事件
+            $('#withdraw').on('click', function() {
+                const messageId = $('#custom-msg-menu').data('messageId'); // 从菜单元素中获取 messageId
+                stompClient.send("/app/withdraw", {}, messageId);// TODO 未实装
+                $('#custom-msg-menu').hide();
+            });
         });
+
     }
 
     function sendMessage() {
@@ -123,30 +180,70 @@
             return date.toLocaleString(); // 格式化日期
         }
 
-    function showMessage(message) {
-        var response = $('#response');
+    function showMessage(messages) {
+        console.log('showMessage');
+        console.log(messages);
+        messages.forEach(message=>{
 
-        var messageContainer = $('<div>').addClass('message-container').attr('id', message.id);
+            var response = $('#response');
+            var messageContainer = $('<div>').addClass('message-container').attr('id', message.id);
+            if(message.username==uname){
+                messageContainer.addClass('my-message');
+            }
 
-        var header = $('<div>').addClass('message-header').html(message.username + '<span class="timestamp">' + formatTimestamp(message.timestamp) + '</span>');
-        var content = $('<div>').addClass('message-content').text(message.content);
+            var header = $('<div>').addClass('message-header').html(message.username + '<span class="timestamp">' + formatTimestamp(message.timestamp) + '</span>');
+            var content = $('<div>').addClass('message-content').text(message.content);
 
-        messageContainer.append(header).append(content);
+            messageContainer.append(header).append(content);
 
-        if (message.readers) {
-            var readersArray = message.readers.split(',');
-            var readersCount = $('<div>').addClass('message-readers-count').text('已读: ' + readersArray.length + '人').css('display', 'inline');;
-            var readers = $('<div>').addClass('message-readers').text('已读: ' + message.readers).hide();
+            if (message.readers) {
+                var readersArray = message.readers.split(',');
+                var readersCount = $('<div>').addClass('message-readers-count').text('已读: ' + readersArray.length + '人').css('display', 'inline');;
+                var readers = $('<div>').addClass('message-readers').text('已读: ' + message.readers).hide();
 
-            messageContainer.append(readersCount).append(readers);
-        }
+                messageContainer.append(readersCount).append(readers);
 
-        response.append(messageContainer);
+                messageContainer.hover(
+                    function() {
+                        readersCount.hide();
+                        readers.show();
+                    },
+                    function() {
+                        readersCount.show();
+                        readers.hide();
+                    }
+                );
+            }
+
+            // 绑定右键自定义菜单
+            messageContainer.on('contextmenu', function(e) {
+                e.preventDefault();
+                $('#custom-msg-menu').css({
+                    display: 'block',
+                    left: e.pageX,
+                    top: e.pageY
+                }).data('messageId',$(this).attr('id'));
+                if($('#custom-msg-menu').hasClass('my-message')){
+                    $("#withdraw").show();
+                }else{
+                    $("#withdraw").hide();
+                }
+            });
+
+            response.append(messageContainer);
+        });
 
         // 确认已读
-        stompClient.send("/app/read", {}, message.id);
+        stompClient.send("/app/read", {}, messages.map(message => message.id));
+
+        scrollToEnd();
+
     }
 
+    function scrollToEnd(){//滚动到底部
+        var h = $(document).height()-$(window).height();
+        $(document).scrollTop(h);
+    }
 
     window.onload = function() {
         connect();

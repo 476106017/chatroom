@@ -15,12 +15,14 @@ public class CustomHandshakeInterceptor extends HttpSessionHandshakeInterceptor 
 
     MessageRepository messageRepository;
 
+    /**
+     * 创建连接
+     */
     @Override
     public boolean beforeHandshake(org.springframework.http.server.ServerHttpRequest request,
                                    org.springframework.http.server.ServerHttpResponse response,
                                    WebSocketHandler wsHandler,
                                    Map<String, Object> attributes) throws Exception {
-
         final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
             final String userName = authentication.getName();
@@ -33,6 +35,9 @@ public class CustomHandshakeInterceptor extends HttpSessionHandshakeInterceptor 
         return super.beforeHandshake(request, response, wsHandler, attributes);
     }
 
+    /**
+     * 连接完成
+     */
     @Override
     public void afterHandshake(org.springframework.http.server.ServerHttpRequest request,
                                org.springframework.http.server.ServerHttpResponse response,
@@ -41,10 +46,12 @@ public class CustomHandshakeInterceptor extends HttpSessionHandshakeInterceptor 
         final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
             final String userName = authentication.getName();
-            Message message = new Message(userName, null, "已断开连接");
-            messageRepository.save(message);
+//            Message message = new Message(userName, null, "连接完成");
+//            messageRepository.save(message);
         }
 
         super.afterHandshake(request, response, wsHandler, ex);
     }
+
+
 }

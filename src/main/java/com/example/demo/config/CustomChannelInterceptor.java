@@ -3,11 +3,13 @@ package com.example.demo.config;
 import com.example.demo.entity.Message;
 import com.example.demo.repo.MessageRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.context.event.EventListener;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import java.util.Map;
 
@@ -42,5 +44,17 @@ public class CustomChannelInterceptor implements ChannelInterceptor {
             sessionAttributes.put("msg", messageDto);
         }
         return message;
+    }
+
+
+    @EventListener
+    public void handleSessionDisconnect(SessionDisconnectEvent event) {
+        StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
+        String username = (String) headerAccessor.getSessionAttributes().get("username");
+
+        if (username != null) {
+            Message message = new Message(username, null, "已离线");
+            messageRepository.save(message);
+        }
     }
 }
