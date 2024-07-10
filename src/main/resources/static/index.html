@@ -115,7 +115,14 @@
             });
             stompClient.subscribe('/queue/withdraw', function (data) { // 撤回
                 if($('#' + data.body)){
+                    $('#' + data.body).off('contextmenu');
                     $('#' + data.body).find('.message-content').html('<em>（消息已撤回）</em>');
+                }
+            });
+            stompClient.subscribe('/queue/report', function (data) { // 举报删除
+                if($('#' + data.body)){
+                    $('#' + data.body).off('contextmenu');
+                    $('#' + data.body).find('.message-content').html('<em>（消息已被举报删除）</em>');
                 }
             });
             stompClient.subscribe('/user/queue/updateReaders', function (data) { // 更新消息已阅情况
@@ -165,8 +172,14 @@
             // 自定义菜单项点击事件
             $('#withdraw').on('click', function() {
                 const messageId = $('#custom-msg-menu').data('messageId'); // 从菜单元素中获取 messageId
-                stompClient.send("/app/withdraw", {}, messageId);// TODO 未实装
+                stompClient.send("/app/withdraw", {}, messageId);
                 $('#custom-msg-menu').hide();
+            });
+            $('#report').on('click', function() {
+                const messageId = $('#custom-msg-menu').data('messageId'); // 从菜单元素中获取 messageId
+                stompClient.send("/app/report", {}, messageId);
+                $('#custom-msg-menu').hide();
+                alert("已举报！");
             });
         });
 
@@ -201,6 +214,8 @@
 
             if(message.status=='WITHDRAW')
                 content.html('<em>（消息已撤回）</em>');
+            else if(message.status=='REPORTED')
+                content.html('<em>（消息已被举报删除）</em>');
             else
                 content.text(message.content);
 
@@ -236,8 +251,10 @@
                 console.log($(this));
                 if($(this).hasClass('my-message')){
                     $("#withdraw").show();
+                    $("#report").hide();
                 }else{
                     $("#withdraw").hide();
+                    $("#report").show();
                 }
             });
 

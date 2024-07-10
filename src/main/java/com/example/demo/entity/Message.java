@@ -31,6 +31,9 @@ public class Message {
     @Column(name = "readers")
     private String readers;
 
+    @Column(name = "reporters")
+    private String reporters;
+
     @Column(name = "timestamp")
     private LocalDateTime timestamp;
 

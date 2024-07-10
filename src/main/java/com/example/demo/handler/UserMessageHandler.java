@@ -88,4 +88,37 @@ public class UserMessageHandler {
            }
         });
     }
+
+
+    @MessageMapping("/report")
+    public void reportMessage(Long messageId, SimpMessageHeaderAccessor accessor) {
+        final String user = MyStorage.of(accessor).getUser();
+
+        final Lock messageLock = readLockMap.get(messageId);
+        messageLock.lock();
+        try {
+            messageRepository.findById(messageId).ifPresent(message -> {
+                if(user.equals(message.getUsername())){
+                    // 不会自己举报自己
+                    return;
+                }
+                String reporters = message.getReporters();
+                if (reporters == null || reporters.isEmpty()) {
+                    reporters = user;
+                } else {
+                    if (!reporters.contains(user)) {
+                        reporters = reporters + "," + user;
+                    }
+                }
+                message.setReporters(reporters);
+                if("admin".equals(user) || reporters.split(",").length >= 3){
+                    message.setStatus("REPORTED");
+                    messagingTemplate.convertAndSend("/queue/report", messageId);
+                }
+                messageRepository.save(message);
+            });
+        }finally {
+            messageLock.unlock();
+        }
+    }
 }
