@@ -14,6 +14,11 @@ public class Container {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * 容器/库位 条码
+     */
+    private String barcode;
+
     private String location;
 
     private Long parentId;

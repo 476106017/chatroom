@@ -19,6 +19,11 @@ public class Stock {
 
     private Long containerId;
 
+    /**
+     * 未拆封（这组货处在唯一的容器内）
+     */
+    private Boolean unopened;
+
     private Integer pcs;
 
     private String status;

@@ -19,6 +19,8 @@ public class ObOrderDetail {
 
     private Integer pcs;
 
+    private Integer pcsDelivered;
+
     private String status;
 
 }
